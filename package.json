@@ -1,0 +1,27 @@
+{
+  "name": "wechaty-xp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "start.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "start": "node start.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.7.0",
+    "fuse.js": "^7.0.0",
+    "getmac": "^5.20.0",
+    "ip": "^1.1.8",
+    "multer": "^1.4.5-lts.1",
+    "music-metadata": "^7.14.0",
+    "wechaty": "^1.20.2",
+    "wechaty-puppet-xp": "^1.13.12"
+  },
+  "devDependencies": {
+    "caxa": "^2.1.0"
+  }
+}

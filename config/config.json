@@ -1,0 +1,20 @@
+{
+  "whitelist": [
+    "10.32.192.164"
+  ],
+  "allowPrivate": true,
+  "port": 3000,
+  "mac": "3342edae8a992d0c8839cd7f5c13d76b",
+  "limit": {
+    "msg": {
+        "windowMs": 1000,
+        "max": 1,
+        "message": "发送消息频率太快，请稍等重试！"
+    },
+    "file" : {
+        "windowMs": 1000,
+        "max": 1,
+        "message": "发送文件频率太快，请稍等重试！"
+    }
+  }
+}
