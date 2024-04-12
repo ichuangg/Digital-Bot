@@ -17,7 +17,7 @@ const {bot, puppet} = require('../wechaty/wechaty.js')
 const app = express()
 app.use(express.static('public'));
 app.use(express.urlencoded({extended: true}))
-app.set('port', 3000)
+app.set('port', 8027)
 // 解析请求体
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
