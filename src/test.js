@@ -1,4 +1,7 @@
-const {searchFileInTree} = require('./utils/fileUtils.js')
-const tex = " 音乐 梵高先生";
+const mm = require("music-metadata");
 
-searchFileInTree(tex)
+async function main() {
+    const metadata = await mm.parseFile('E:\\CloudMusic\\VipSongsDownload\\Pink Floyd - Mother.ncm');
+    console.log(metadata)
+}
+main().then(r => {})
