@@ -54,7 +54,8 @@ async function initCookieMap() {
 async function saveCookieMap() {
     const jsonMap = JSON.stringify(Object.fromEntries(musicCookieMap.entries()));
     await fs.writeFileSync(filePath, jsonMap);
-    console.log('Map 数据已保存到硬盘。');}
+    console.log('用户cookie数据已保存。');
+}
 const getCookie = (wxid = 'wxid_taztz8qep6ou22') => {
     return musicCookieMap.get(wxid).cookie
 }

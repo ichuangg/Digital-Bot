@@ -1,5 +1,5 @@
 const {WechatyBuilder, log} = require('wechaty')
-const {searchFileList} = require('../utils/searchUtils.js')
+const {searchFileList,rootDir,fileMd5Map} = require('../utils/searchUtils.js')
 const {musicCookieMap,login} = require('../utils/musicLogin.js')
 const {uploadMusicToCloud} = require('../utils/musicUploadToCloud.js')
 const {default: PuppetXp} = require('wechaty-puppet-xp')
@@ -16,6 +16,9 @@ module.exports = {bot, puppet}
 
 const app = require("../web/app");
 const Fuse = require("fuse.js");
+const xml2js = require("xml2js");
+const fs = require("fs");
+const path = require("path");
 
 // const MessageMap = new Map()
 
@@ -24,7 +27,7 @@ const Fuse = require("fuse.js");
  */
 const fuse = new Fuse(searchFileList, {
     includeScore: true,
-    keys: ['searchKey'], // 定义搜索的键
+    keys: ['metadata.title','metadata.album','metadata.artist','name','searchKey'], // 定义搜索的键
 });
 function onLogin(contact) {
     log.info('WechatY Start successfully By', contact.toString())
@@ -51,6 +54,8 @@ function messageFilter(message) {
         // return contactsWhiteList.includes(message.talker().id)
     }
 }
+
+const SaveFileExtList = ['mp3','flac']
 /**
  * 接收到微信消息后触发的事件
  * @param message 收到的消息 类型信息 WechatyInterface.Message.Type
@@ -87,11 +92,7 @@ async function onMessage(message) {
                     await puppet.sidecar.sendPicMsg(message.talker().id, searchList[0].item.path)
                 }
             } else {
-                if (message.room()) {
-                    await message.room().say("没有找到：" + key)
-                } else {
-                    await message.from().say("没有找到：" + key)
-                }
+                sayNo(message,key)
             }
         }
 
@@ -102,13 +103,7 @@ async function onMessage(message) {
             if (searchList.length > 0) {
                 uploadMusicToCloud(message,searchList[0].item)
             } else {
-                if (message.room()) {
-                    await message.room().say("没有找到：" + key)
-                    // await puppet.messageSendFile(message.room().id, fileBox)
-                } else {
-                    await message.from().say("没有找到：" + key)
-                    // await puppet.messageSendFile(message.talker().id, fileBox)
-                }
+                sayNo(message,key)
             }
         }
 
@@ -116,8 +111,32 @@ async function onMessage(message) {
 
     // 文件
     if (message.type() === bot.Message.Type.Attachment) {
-        // const FileBox = await message.toFileBox()
-        // console.log(FileBox)
+        try {
+            const parser = new xml2js.Parser()
+            const messageJson = await parser.parseStringPromise(message.text() || '')
+            if (isSaveFile(messageJson)) {
+                const fileName = messageJson.msg.appmsg[0].title[0]
+                const size = messageJson.msg.appmsg[0].appattach[0].totallen[0]
+                const fileext = messageJson.msg.appmsg[0].appattach[0].fileext[0]
+                const md5 = messageJson.msg.appmsg[0].md5[0]
+                const path = rootDir + '微信保存' + '\\' + fileName
+                await saveMessageFile(message, path)
+                const fileObj = {
+                    name: fileName,
+                    type: 'file',
+                    size: size, // 文件大小（字节）
+                    fileType: fileext, // 文件类型（后缀名）
+                    path: path, // 添加完整路径
+                    searchKey: fileName,
+                    md5
+                }
+                searchFileList.push(fileObj)
+                fileMd5Map.set(md5,fileObj)
+                fuse.setCollection([fileObj])
+            }
+        } catch (e) {
+            console.log("保存文件出错！",e)
+        }
     }
     //C:\Users\Administrator\Documents\WeChat Files\wxid_taztz8qep6ou22\FileStorage\File\2024-04\北京一夜.mp3'
     //
@@ -129,6 +148,45 @@ async function onMessage(message) {
     }
 }
 
+/**
+ * 保存消息对象的文件  因为文件可能较大，微信自动下载后才能找到路径保存。
+ * @param message
+ * @param path
+ * @param retries 重试次数
+ */
+async function saveMessageFile(message, path, retries = 3) {
+    try {
+        // 检查文件是否已存在
+        if (!fs.existsSync(path)) {
+            const FileBox = await message.toFileBox();
+            await FileBox.toFile(path);
+            console.log(path + " 保存文件成功！");
+        }
+    } catch (e) {
+        if (retries > 0) {
+            setTimeout(() => {
+                saveMessageFile(message, path, retries - 1);
+            }, 5000);
+        } else {
+            console.log("重试次数已用完，保存文件失败。" + path);
+        }
+    }
+}
+
+const saveFileSize = 1024 * 1024 * 1024 * 50  //MB
+function isSaveFile(messageJson) {
+    const size = messageJson.msg.appmsg[0].appattach[0].totallen[0]
+    const fileext = messageJson.msg.appmsg[0].appattach[0].fileext[0]
+    const md5 = messageJson.msg.appmsg[0].md5[0]
+    return fileext && SaveFileExtList.includes(fileext) && md5 && !fileMd5Map.has(md5) && (size <= saveFileSize)
+}
+function sayNo(message,key) {
+    if (message.room()) {
+        message.room().say(key + '\n这个真没有...🥺')
+    } else {
+        message.from().say(key + '\n这个真没有...🥺')
+    }
+}
 //C:\Users\Administrator\Documents\WeChat Files\WeChat Files\wxid_taztz8qep6ou22\FileStorage\File\2024-04
 // 'C:\Users\Administrator\Documents\WeChat Files\wxid_taztz8qep6ou22\FileStorage\File\2024-04\周杰伦 - 将军.flac'
 // 绑定事件

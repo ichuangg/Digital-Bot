@@ -1,5 +1,6 @@
 const {bot} = require('./src/wechaty/wechaty')
 const {saveCookieMap} = require('./src/utils/musicLogin')
+const {saveFileList} = require('./src/utils/searchUtils')
 const path = require('path')
 const fs = require('fs')
 const getMac = require('getmac')["default"]
@@ -27,8 +28,10 @@ bot.start().then(() => {
     log.info('WeChatY Starting ......')
 }).catch(e => log.error('WeChatY Start failed!' + e))
 
-process.on('SIGINT', function () {
+process.on('SIGINT', async function () {
     console.log('收到 SIGINT 信号，开始优雅退出...');
+    await saveCookieMap()
+    await saveFileList()
     // 清理工作...
     process.exit();
 });
@@ -36,8 +39,7 @@ process.on('SIGINT', function () {
 
 // 开始退
 process.on('exit', async function () {
-    await saveCookieMap()
-    console.log('退出，开始最后的清理工作...');
+    console.log('退出，完成清理工作...');
     // 清理工作...
 });
 
