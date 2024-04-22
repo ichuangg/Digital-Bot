@@ -238,4 +238,4 @@ initCookieMap().then(_r => {
     //     console.log(res_)
     // })
 })
-module.exports = {musicCookieMap,saveCookieMap ,login }
+module.exports = {musicCookieMap,saveCookieMap ,login ,getCookie}

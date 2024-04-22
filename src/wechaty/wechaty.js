@@ -1,5 +1,5 @@
 const {WechatyBuilder, log} = require('wechaty')
-const {searchFileList,rootDir,fileMd5Map} = require('../utils/searchUtils.js')
+const {updateFileList,fuse,rootDir,fileMd5Map} = require('../utils/searchUtils.js')
 const {musicCookieMap,login} = require('../utils/musicLogin.js')
 const {uploadMusicToCloud} = require('../utils/musicUploadToCloud.js')
 const {default: PuppetXp} = require('wechaty-puppet-xp')
@@ -15,7 +15,6 @@ const bot = WechatyBuilder.build({
 module.exports = {bot, puppet}
 
 const app = require("../web/app");
-const Fuse = require("fuse.js");
 const xml2js = require("xml2js");
 const fs = require("fs");
 const path = require("path");
@@ -25,10 +24,6 @@ const path = require("path");
 /**
  * 登陆完成，初始化成功后的回调
  */
-const fuse = new Fuse(searchFileList, {
-    includeScore: true,
-    keys: ['metadata.title','metadata.album','metadata.artist','name','searchKey'], // 定义搜索的键
-});
 function onLogin(contact) {
     log.info('WechatY Start successfully By', contact.toString())
     // 启动Web服务
@@ -40,7 +35,7 @@ function onLogin(contact) {
 const Keyword = {
     Login : '网易云登录',
     Music : '@@',
-    Upload: '**'
+    Upload: '**',
 }
 // 自己 、 兔头
 const contactsWhiteList = ["wxid_taztz8qep6ou22",'wxid_luuasz72ta0t22']
@@ -109,7 +104,7 @@ async function onMessage(message) {
 
     }
 
-    // 文件
+    // 文件 接收到文件后保存到本地
     if (message.type() === bot.Message.Type.Attachment) {
         try {
             const parser = new xml2js.Parser()
@@ -130,9 +125,7 @@ async function onMessage(message) {
                     searchKey: fileName,
                     md5
                 }
-                searchFileList.push(fileObj)
-                fileMd5Map.set(md5,fileObj)
-                fuse.setCollection([fileObj])
+                updateFileList(fileObj)
             }
         } catch (e) {
             console.log("保存文件出错！",e)

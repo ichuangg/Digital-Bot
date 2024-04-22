@@ -4,6 +4,7 @@ const mm = require("music-metadata");
 const crypto = require("crypto");
 const {log} = require("wechaty");
 const os = require("os");
+const Fuse = require("fuse.js");
 const rootDir = 'E:\\Boot-Root-Dir\\';
 const musicFileExtName = ['mp3','MP3','FLAC','flac']
 async function readDirectoryTree(directoryPath = rootDir) {
@@ -124,9 +125,20 @@ async function initData() {
         })
     }
 }
+const fuse = new Fuse(searchFileList, {
+    includeScore: true,
+    keys: ['metadata.title','metadata.album','metadata.artist','name','searchKey'], // 定义搜索的键
+});
 initData().then(r => {
+    fuse.setCollection(searchFileList)
     log.info("文件列表加载完毕...",searchFileList.length)
-    // console.log(fileMd5Map)
 })
 
-module.exports = {searchFileList,rootDir,fileMd5Map,saveFileList};
+function updateFileList(fileObj) {
+    searchFileList.push(fileObj)
+    if (fileObj.md5) {
+        fileMd5Map.set(fileObj.md5,fileObj)
+    }
+    fuse.setCollection([fileObj])
+}
+module.exports = {searchFileList,rootDir,fileMd5Map,saveFileList,fuse,updateFileList};
