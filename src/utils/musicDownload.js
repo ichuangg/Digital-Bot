@@ -12,8 +12,8 @@ const path = require("path");
  * @param cookie
  * @param br 码率mp3最多 320000
  */
-async function downloadMusic(keywords,cookie,br = 128000) {
-    // let cookie = getCookie()
+async function downloadMusic(keywords,message,br = 128000) {
+    let cookie = getCookie()
     const res = await cloudMusicApi.search({keywords,type:1,cookie})
     const albumId = res.body.result.songs[0].album.id
     const album = await cloudMusicApi.album({cookie,id:albumId})
@@ -30,6 +30,7 @@ async function downloadMusic(keywords,cookie,br = 128000) {
     // 保存位置
     const savePath = rootDir + "网易云下载\\" + albumName + "\\" + artName + "\\" + saveName + "." +res2.body.data.type
     if (!fs.existsSync(savePath)) {
+        message.talker().say(`正在下载...\n专辑💽：${albumName}\n音乐🎧：${musicName}\n艺人🎨：${artName}`)
         const tags = {
             title: musicName,
             artist: artName,
@@ -42,21 +43,22 @@ async function downloadMusic(keywords,cookie,br = 128000) {
         }
         const fileBuffer = await FileBox.fromUrl(dataUrl).toBuffer(savePath)
         // 写入元信息
-        NodeID3.write(tags, fileBuffer,async (e,b) => {
-            createDirectory(savePath)
-            await FileBox.fromBuffer(b).toFile(savePath,false)
-            const fileObj = {
-                name: saveName,
-                type: 'file',
-                size: b.length, // 文件大小（字节）
-                fileType: '.' + res2.body.data.type, // 文件类型（后缀名）
-                path: savePath, // 添加完整路径
-                searchKey: saveName,
-            }
-            updateFileList(fileObj)
-            console.log(savePath + " 保存成功！")
-        }) // Returns true/Error
+        const b = await NodeID3.write(tags, fileBuffer) // Returns true/Error
+        createDirectory(savePath)
+        await FileBox.fromBuffer(b).toFile(savePath,false)
+        const fileObj = {
+            name: saveName,
+            type: 'file',
+            size: b.length, // 文件大小（字节）
+            fileType: '.' + res2.body.data.type, // 文件类型（后缀名）
+            path: savePath, // 添加完整路径
+            searchKey: saveName,
+        }
+        updateFileList(fileObj)
+        console.log(savePath + " 保存成功！")
+        return fileObj;
     }
+    return null;
 }
 function createDirectory(filePath) {
     const directory = path.dirname(filePath);
@@ -65,3 +67,4 @@ function createDirectory(filePath) {
         fs.mkdirSync(directory, { recursive: true });
     }
 }
+module.exports = {downloadMusic}

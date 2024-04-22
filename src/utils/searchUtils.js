@@ -127,14 +127,24 @@ async function initData() {
 }
 const fuse = new Fuse(searchFileList, {
     includeScore: true,
-    keys: ['metadata.title','metadata.album','metadata.artist','name','searchKey'], // 定义搜索的键
+    threshold: 0.33,    //匹配精确度
+    ignoreLocation: true,   // 忽略关键词的位置
+    keys: ['searchKey','metadata.title','metadata.album','metadata.artist'], // 定义搜索的键
 });
 initData().then(r => {
     fuse.setCollection(searchFileList)
     log.info("文件列表加载完毕...",searchFileList.length)
 })
 
-function updateFileList(fileObj) {
+async function updateFileList(fileObj) {
+    const metadata = await mm.parseFile(fileObj.path);
+    // 歌曲名称 、 专辑名称  、  艺术家名称
+    const metaObj = {
+        title:metadata.common.title,
+        album:metadata.common.album,
+        artist:metadata.common.artist,
+    }
+    fileObj.metadata = metaObj
     searchFileList.push(fileObj)
     if (fileObj.md5) {
         fileMd5Map.set(fileObj.md5,fileObj)

@@ -2,6 +2,7 @@ const {WechatyBuilder, log} = require('wechaty')
 const {updateFileList,fuse,rootDir,fileMd5Map} = require('../utils/searchUtils.js')
 const {musicCookieMap,login} = require('../utils/musicLogin.js')
 const {uploadMusicToCloud} = require('../utils/musicUploadToCloud.js')
+const {downloadMusic} = require('../utils/musicDownload.js')
 const {default: PuppetXp} = require('wechaty-puppet-xp')
 const {FileBox} = require('file-box')
 // PuppetXp
@@ -35,6 +36,7 @@ function onLogin(contact) {
 const Keyword = {
     Login : '网易云登录',
     Music : '@@',
+    DownLoadMusic : '@@@',
     Upload: '**',
 }
 // 自己 、 兔头
@@ -51,6 +53,15 @@ function messageFilter(message) {
 }
 
 const SaveFileExtList = ['mp3','flac']
+
+async function sendFileByMessage(message, path) {
+    if (message.room()) {
+        await puppet.sidecar.sendPicMsg(message.room().id, path)
+    } else {
+        await puppet.sidecar.sendPicMsg(message.talker().id, path)
+    }
+}
+
 /**
  * 接收到微信消息后触发的事件
  * @param message 收到的消息 类型信息 WechatyInterface.Message.Type
@@ -78,16 +89,22 @@ async function onMessage(message) {
 
 
         if (message.text().startsWith(Keyword.Music)) {
-            const key = message.text().replace(Keyword.Music, '');
+            const key = message.text().replace(/^@+/, '');
             const searchList = fuse.search(key)
             if (searchList.length > 0) {
-                if (message.room()) {
-                    await puppet.sidecar.sendPicMsg(message.room().id, searchList[0].item.path)
-                } else {
-                    await puppet.sidecar.sendPicMsg(message.talker().id, searchList[0].item.path)
-                }
+                await sendFileByMessage(message, searchList[0].item.path);
             } else {
-                sayNo(message,key)
+                if (message.text().startsWith(Keyword.DownLoadMusic)) {
+                    sayNo(message,  '本地没有找到：'+key+',正在通过网络下载...')
+                    const res = await downloadMusic(key,message)
+                    if (res) {
+                        await sendFileByMessage(message, res.path);
+                    } else {
+                        sayNo(message,key + '\n下载失败💔')
+                    }
+                } else {
+                    sayNo(message,key + '\n这个真没有...🥺')
+                }
             }
         }
 
@@ -173,11 +190,11 @@ function isSaveFile(messageJson) {
     const md5 = messageJson.msg.appmsg[0].md5[0]
     return fileext && SaveFileExtList.includes(fileext) && md5 && !fileMd5Map.has(md5) && (size <= saveFileSize)
 }
-function sayNo(message,key) {
+function sayNo(message,text) {
     if (message.room()) {
-        message.room().say(key + '\n这个真没有...🥺')
+        message.room().say(text)
     } else {
-        message.from().say(key + '\n这个真没有...🥺')
+        message.talker().say(text)
     }
 }
 //C:\Users\Administrator\Documents\WeChat Files\WeChat Files\wxid_taztz8qep6ou22\FileStorage\File\2024-04
