@@ -1,4 +1,5 @@
 const {getCookie} = require('../utils/musicLogin.js')
+const {replyMessage} = require('../utils/messageUtils.js')
 const {rootDir,updateFileList} = require('../utils/searchUtils.js')
 const cloudMusicApi = require("NeteaseCloudMusicApi");
 const {FileBox} = require("file-box");
@@ -12,8 +13,7 @@ const path = require("path");
  * @param cookie
  * @param br 码率mp3最多 320000
  */
-async function downloadMusic(keywords,message,br = 128000) {
-    let cookie = getCookie()
+async function downloadMusic(keywords,message,cookie,br = 128000) {
     const res = await cloudMusicApi.search({keywords,type:1,cookie})
     const albumId = res.body.result.songs[0].album.id
     const album = await cloudMusicApi.album({cookie,id:albumId})
@@ -25,21 +25,22 @@ async function downloadMusic(keywords,message,br = 128000) {
     const saveName = artName + ' - ' + res.body.result.songs[0].name
     const res2 = await cloudMusicApi.song_download_url({id:musicId,cookie,br})
     // 歌词  fix 播放器好像不能正常解析
-    const lyric = await cloudMusicApi.lyric({id:musicId,cookie})
+    // const lyric = await cloudMusicApi.lyric({id:musicId,cookie})
     const dataUrl = res2.body.data.url;
+    const fileTypeExt = res2.body.data.type ? res2.body.data.type : 'mp3'
     // 保存位置
-    const savePath = rootDir + "网易云下载\\" + albumName + "\\" + artName + "\\" + saveName + "." +res2.body.data.type
+    const savePath = rootDir + "网易云下载\\" + albumName + "\\" + artName + "\\" + saveName + "." + fileTypeExt;
     if (!fs.existsSync(savePath)) {
-        message.talker().say(`正在下载...\n专辑💽：${albumName}\n音乐🎧：${musicName}\n艺人🎨：${artName}`)
+        replyMessage(message,`正在下载...\n专辑💽：${albumName}\n音乐🎧：${musicName}\n艺人🎨：${artName}`)
         const tags = {
             title: musicName,
             artist: artName,
             album: albumName,
             APIC: await FileBox.fromUrl(coverImg).toBuffer(),   // 专辑封面
-            unsynchronisedLyrics: { // 歌词
-                language: "XXX",
-                text: lyric.body.lrc.lyric
-            }
+            // unsynchronisedLyrics: { // 歌词
+            //     language: "XXX",
+            //     text: lyric.body.lrc.lyric
+            // }
         }
         const fileBuffer = await FileBox.fromUrl(dataUrl).toBuffer(savePath)
         // 写入元信息

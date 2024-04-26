@@ -5,6 +5,7 @@ const cloudMusicApi = require("NeteaseCloudMusicApi");
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
+const {replyMessage} = require('../utils/messageUtils.js')
 let musicCookieMap = new Map()
 const filePath = path.join(os.homedir(), '.user-cookie.json');
 async function login(message) {
@@ -21,12 +22,12 @@ async function login(message) {
     //     url: `/login/qr/create?key=${key}&qrimg=true&timestamp=${Date.now()}`,
     // })
     const qrFile = FileBox.fromDataURL(res2.body.data.qrimg,'qr.jpg')
-    await message.say(qrFile)
-    await message.say("网易云APP扫二维码登录📱")
+    replyMessage(message,qrFile)
+    replyMessage(message,"网易云APP扫二维码登录📱")
     timer = setInterval(async () => {
         const statusRes = await cloudMusicApi.login_qr_check({key})
         if (statusRes.body.code === 800) {
-            await message.say('二维码已过期,请重新获取。')
+            replyMessage(message,"二维码已过期,请重新获取。")
             clearInterval(timer)
         }
         if (statusRes.body.code === 803) {
@@ -36,7 +37,7 @@ async function login(message) {
             const status = await cloudMusicApi.login_status({cookie})
             const userInfo = status.body.data
             musicCookieMap.set(message.talker().id,{contacts : message.talker(),cookie,userInfo})
-            await message.say('登录成功😊:' + userInfo.profile.nickname)
+            replyMessage(message,'登录成功😊:' + userInfo.profile.nickname)
             log.info("登录成功：" + userInfo.profile.nickname)
         }
     }, 3000)

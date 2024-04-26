@@ -45,7 +45,7 @@ process.on('exit', async function () {
 
 process.on('uncaughtException', function (e) {
     /*处理异常*/
-    console.log(e.message)
+    console.error(e.stack)
 });
 // } else {
 //     console.log("启动失败，加密配置错误。")
