@@ -58,7 +58,7 @@ async function saveCookieMap() {
     console.log('用户cookie数据已保存。');
 }
 const getCookie = (wxid = 'wxid_taztz8qep6ou22') => {
-    return musicCookieMap.get(wxid).cookie
+    return musicCookieMap.get(wxid)?.cookie
 }
 initCookieMap().then(_r => {
 
